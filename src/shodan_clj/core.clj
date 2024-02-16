@@ -1,3 +1,5 @@
+;;; Copyright © 2024 Justin Bishop <mail@dissoc.me>
+
 (ns shodan-clj.core
   (:require
    [hato.client :as hc]

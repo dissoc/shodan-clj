@@ -1,3 +1,5 @@
+;;; Copyright © 2024 Justin Bishop <mail@dissoc.me>
+
 (ns shodan-clj.middleware
   (:require
    [camel-snake-kebab.core :as csk]

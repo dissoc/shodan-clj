@@ -596,3 +596,158 @@
       (s-get (str "/notifier/" id))
       (throw (ex-info "Invalid input"
                       (me/humanize (m/explain params-schema params)))))))
+
+;;;;;;;;;;;;;;;
+;; directory ;;
+;;;;;;;;;;;;;;;
+
+(defn list-saved-queries
+  "List the saved search queries
+  Use this method to obtain a list of search queries that users have saved in
+  Shodan.
+
+  Parameters
+  page (optional): [Integer] Page number to iterate over results; each page
+  contains 10 items
+  sort (optional): [String] Sort the list based on a property. Possible values
+  are: votes, timestamp
+  order (optional): [String] Whether to sort the list in ascending or descending
+  order. Possible values are: asc, desc"
+  [{page  :page
+    sort  :sort
+    order :order
+    :as   params}]
+  (let [params-schema [:map
+                       [:page {:optional true} int?]
+                       [:sort {:optional true} string?]
+                       [:order {:optional true} string?]]]
+    (if  (m/validate params-schema params)
+      (s-get (str "/shodan/query"))
+      (throw (ex-info "Invalid input"
+                      (me/humanize (m/explain params-schema params)))))))
+
+(defn search-saved-queries
+  "Search the directory of saved search queries.
+  Use this method to search the directory of search queries that users have
+  saved in Shodan.
+
+  Parameters
+  query: [String] What to search for in the directory of saved search queries.
+  page (optional): [Integer] Page number to iterate over results; each page
+  contains 10 items"
+  [{query :query
+    page  :page
+    :as   params}]
+  (let [params-schema [:map
+                       [:query string?]
+                       [:page {:optional true} int?]]]
+    (if (m/validate params-schema params)
+      (s-get (str "/shodan/query/search"))
+      (throw (ex-info "Invalid input"
+                      (me/humanize (m/explain params-schema params)))))))
+
+(defn list-popular-tags
+  "List the most popular tags
+  Use this method to obtain a list of popular tags for the saved search queries
+  in Shodan.
+  Parameters
+  size (optional): [Integer] The number of tags to return (default: 10). "
+  []
+  (s-get (str "/shodan/query/tags")))
+
+;;;;;;;;;;;;;
+;; account ;;
+;;;;;;;;;;;;;
+
+(defn account-profile
+  "Account Profile
+  Returns information about the Shodan account linked to this API key."
+  []
+  (s-get (str "/account/profile")))
+
+;;;;;;;;;
+;; DNS ;;
+;;;;;;;;;
+
+(defn domain-info
+  "Domain Information
+  Get all the subdomains and other DNS entries for the given domain. Uses 1
+  query credit per lookup.
+  Parameters
+  domain: [String] Domain name to lookup; example \"cnn.com\"
+  history (optional): [Boolean] True if historical DNS data should be included
+  in the results (default: False)
+  type (optional): [String] DNS type, possible values are: A, AAAA, CNAME, NS,
+  SOA, MX, TXT
+  page (optional): [Integer] The page number to page through results 100 at a
+  time (default: 1)"
+  [{domain  :domain
+    history :history
+    type    :type
+    page    :page
+    :as     params}]
+  (let [params-schema [:map
+                       [:domain string?]]]
+    (if (m/validate params-schema params)
+      (s-get (str "/dns/domain/" domain)
+             {:query-params (select-keys params [:history :type :page])})
+      (throw (ex-info "Invalid input"
+                      (me/humanize (m/explain params-schema params)))))))
+
+(defn dns-lookup
+  "DNS Lookup
+  Look up the IP address for the provided list of hostnames.
+
+  Parameters
+  hostnames: [String] Comma-separated list of hostnames;
+  example \"google.com,bing.com\""
+  [{hostnames :hostnames
+    :as       params}]
+  (let [params-schema [:map
+                       [:hostnames string?]]]
+    (if (m/validate params-schema params)
+      (s-get (str "/dns/resolve"))
+      (throw (ex-info "Invalid input"
+                      (me/humanize (m/explain params-schema params)))))))
+
+(defn reverse-dns-lookup
+  "Reverse DNS Lookup
+  Look up the hostnames that have been defined for the given list of IP
+  addresses.
+
+  Parameters
+  ips: [String] Comma-separated list of IP addresses;
+  example \"74.125.227.230,204.79.197.200\""
+  [{ips :ips
+    :as params}]
+  (let [params-schema [:map
+                       [:ips string?]]]
+    (if (m/validate params-schema params)
+      (s-get (str "/dns/reverse") (select-keys params [:ips]))
+      (throw (ex-info "Invalid input"
+                      (me/humanize (m/explain params-schema params)))))))
+
+;;;;;;;;;;;;;
+;; Utility ;;
+;;;;;;;;;;;;;
+
+(defn http-headers
+  "HTTP Headers
+  Shows the HTTP headers that your client sends when connecting to a webserver."
+  []
+  (s-get (str "/tools/httpheaders")))
+
+(defn my-ip-address
+  "My IP Address
+  Get your current IP address as seen from the Internet."
+  []
+  (s-get (str "/tools/myip")))
+
+;;;;;;;;;;;;;;;;
+;; api-status ;;
+;;;;;;;;;;;;;;;;
+
+(defn api-info
+  "Returns information about the API plan belonging to the given API key."
+  []
+  (s-get "/api-info"))

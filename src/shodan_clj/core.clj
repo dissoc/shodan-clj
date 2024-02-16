@@ -287,3 +287,218 @@
       (s-get (str "/shodan/scan/" id))
       (throw (ex-info "Invalid input"
                       (me/humanize (m/explain params-schema params)))))))
+
+;;;;;;;;;;;;;;;;;;;;
+;; network alerts ;;
+;;;;;;;;;;;;;;;;;;;;
+
+(defn alert
+  "Create an alert to monitor a network range
+  Use this method to create a network alert for a defined IP/ netblock which can
+  be used to subscribe to changes/ events that are discovered within that range.
+
+  Parameters
+  The alert is created by sending a JSON encoded object that has the structure:
+  name: [String] The name to describe the network alert.
+  filters: [Object] An object specifying the criteria that an alert should
+  trigger. The only supported option at the moment is the \"ip\" filter.
+  filters.ip: [String] A list of IPs or network ranges defined using CIDR
+  notation.
+  expires (optional): [Integer] Number of seconds that the alert should be
+  active. "
+  [{name       :name
+    filters    :filters
+    filters-ip :filters-ip
+    expires    :expires
+    :as        params}]
+  (let [params-schema [:map
+                       [:name string?]
+                       [:filters [:map [:ip string?]]]]]
+    (if (m/validate params-schema {:form-params (merge {:name name
+                                                        :filters {:ip filters-ip}}
+                                                       (when expires
+                                                         {:expires expires}))})
+      (s-post "/shodan/alert")
+      (throw (ex-info "Invalid input"
+                      (me/humanize (m/explain params-schema params)))))))
+
+(defn alert-info
+  "Get the details for a network alert
+  Returns the information about a specific network alert.
+
+  Parameters
+  id: [String] Alert ID"
+  [{id  :id
+    :as params}]
+  (let [params-schema [:map
+                       [:id string?]]]
+    (if (m/validate params-schema params)
+      (s-get (str "/shodan/alert/" id "/info"))
+      (throw (ex-info "Invalid input"
+                      (me/humanize (m/explain params-schema params)))))))
+
+(defn delete-alert
+  "Delete an alert
+  Remove the specified network alert.
+
+  Parameters
+  id: [String] Alert ID"
+  [{id  :id
+    :as params}]
+  (let [params-schema [:map
+                       [:id string?]]]
+    (if (m/validate params-schema params)
+      (s-delete (str "/shodan/alert/" id))
+      (throw (ex-info "Invalid input"
+                      (me/humanize (m/explain params-schema params)))))))
+
+(defn edit-alert
+  "Edit the networks monitored in an alert
+  Use this method to edit a network alert with a new list of IPs/ networks to
+  keep track of.
+
+  Parameters
+  The alert is edited by sending a JSON encoded object that has the structure:
+  filters: [Object] An object specifying the criteria that an alert should
+  trigger. The only supported option at the moment is the \"ip\" filter.
+  filters.ip: [String] A list of IPs or network ranges defined using CIDR
+  notation."
+  [{id      :id
+    filters :filters}]
+  (let [params-schema [:map
+                       [:filters
+                        [:map [:ip string?]]]]])
+  (s-post (str "/shodan/alert/" id) {:form-params
+                                     {:filters {:ip (-> filters :ip)}}}))
+
+(defn alerts
+  "Get a list of all the created alerts
+  Returns a listing of all the network alerts that are currently active on the
+  account."
+  []
+  (s-get (str "/shodan/alert/info")))
+
+(defn triggers
+  "Get a list of available triggers
+  Returns a list of all the triggers that can be enabled on network alerts."
+  []
+  (s-get (str "/shodan/alert/triggers")))
+
+(defn enable-trigger
+  "Enable a trigger
+  Get notifications when the specified trigger is met.
+
+  Parameters
+  id: [String] Alert ID
+  trigger: [String] Comma-separated list of trigger names"
+  [{id      :id
+    trigger :trigger
+    :as     params}]
+  (let [params-schema [:map
+                       [:id string?]
+                       [:trigger string?]]]
+    (if (m/validate params-schema params)
+      (s-put (str "/shodan/alert/" id "/trigger/" trigger))
+      (throw (ex-info "Invalid input"
+                      (me/humanize (m/explain params-schema params)))))))
+
+(defn disable-trigger
+  "Disable a trigger
+  Stop getting notifications for the specified trigger.
+
+  Parameters
+  id: [String] Alert ID
+  trigger: [String] Comma-separated list of trigger names"
+  [{id      :id
+    trigger :trigger
+    :as     params}]
+  (let [params-schema [:map
+                       [:id string?]
+                       [:trigger string?]]]
+    (if (m/validate params-schema params)
+      (s-delete (str "/shodan/alert/" id "/trigger/" trigger))
+      (throw (ex-info "Invalid input"
+                      (me/humanize (m/explain params-schema params)))))))
+
+(defn whitelist-service-trigger
+  "Add to Whitelist
+  Ignore the specified service when it is matched for the trigger.
+
+  Parameters
+  id: [String] Alert ID
+  trigger: [String] Trigger name
+  service: [String] Service specified in the format \"ip:port\"
+  (ex. \"1.1.1.1:80\""
+  [{id      :id
+    trigger :trigger
+    service :service
+    :as     params}]
+  (let [params-schema [:map
+                       [:id string?]
+                       [:trigger string?]
+                       [:service string?]]]
+    (if (m/validate params-schema params)
+      (s-put (str "/shodan/alert/" id "/trigger/" trigger "/ignore/"service))
+      (throw (ex-info "Invalid input"
+                      (me/humanize (m/explain params-schema params)))))))
+
+(defn remove-whitelist-service-trigger
+  "Remove from Whitelist
+  Start getting notifications again for the specified trigger.
+
+  Parameters
+  id: [String] Alert ID
+  trigger: [String] Trigger name
+  service: [String] Service specified in the format \"ip:port\"
+  (ex. \"1.1.1.1:80\""
+  [{id      :id
+    trigger :trigger
+    service :service
+    :as     params}]
+  (let [params-schema [:map
+                       [:id string?]
+                       [:trigger string?]
+                       [:service string?]]]
+    (if (m/validate params-schema params)
+      (s-delete (str "/shodan/alert/" id "/trigger/" trigger "/ignore/"service))
+      (throw (ex-info "Invalid input"
+                      (me/humanize (m/explain params-schema params)))))))
+
+(defn add-alert-notifier
+  "Add the notifier to the alert
+  Add the specified notifier to the network alert. Notifications are only sent
+  if triggers have also been enabled. For each created user, there is a default
+  notifier which will sent via email.
+
+  Parameters
+  id: [String] Alert ID
+  notifier_id: [String] Notifier ID"
+  [{id          :id
+    notifier-id :notified-id
+    :as         params}]
+  (let [params-schema [:map
+                       [:id string?]
+                       [:notifier-id string?]]]
+    (if (m/validate params-schema params)
+      (s-put (str "/shodan/alert/" id "/notifier/" notifier-id))
+      (throw (ex-info "Invalid input"
+                      (me/humanize (m/explain params-schema params)))))))
+
+(defn remove-alert-notifier
+  "Remove the notifier from the alert
+  Remove the notification service from the alert. Notifications are only sent if
+  triggers have also been enabled.
+
+  Parameters
+  id: [String] Alert ID
+  notifier_id: [String] Notifier ID"
+  [{id          :id
+    notifier-id :notified-id
+    :as         params}]
+  (let [params-schema [:map
+                       [:id string?]
+                       [:notifier-id string?]]]
+    (if (m/validate params-schema params)
+      (s-delete (str "/shodan/alert/" id "/notifier/" notifier-id))
+      (throw (ex-info "Invalid input"
+                      (me/humanize (m/explain params-schema params)))))))

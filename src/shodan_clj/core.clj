@@ -184,3 +184,104 @@
                {:query-params (select-keys params [:query])})
       (throw (ex-info "Invalid input"
                       (me/humanize (m/explain params-schema params)))))))
+
+;;;;;;;;;;;;;;;;;;;;;;;;
+;; On-Demand Scanning ;;
+;;;;;;;;;;;;;;;;;;;;;;;;
+
+(defn list-ports
+  "List all ports that Shodan is crawling on the Internet.
+  This method returns a list of port numbers that the crawlers are looking for."
+  []
+  (s-get "/shodan/ports"))
+
+(defn list-protocols
+  "List all protocols that can be used when performing on-demand Internet scans
+  via Shodan.
+  This method returns an object containing all the protocols that can be used
+  when launching an Internet scan."
+  []
+  (s-get "/shodan/protocols"))
+
+;; TODO Finish this validation. spec doesnt cover
+;; string kw for maps
+
+(defn scan
+  "Request Shodan to crawl an IP/ netblock
+  Use this method to request Shodan to crawl a network.
+
+  Requirements
+  This method uses API scan credits: 1 IP consumes 1 scan credit. You must have
+  a paid API plan (either one-time payment or subscription) in order to use this
+  method.
+
+  Parameters
+  ips: [String] A comma-separated list of IPs or netblocks (in CIDR notation)
+  that should get crawled.
+  service: [Array] A list of services that should get scanned, where a service
+  is defined as a [port, protocol]. "
+  ;; [{:ips "8.8.8.8" :services [{:port 80 :protocol "http"}]}]
+  [{ips      :ips
+    services :services
+    :as      params}]
+  (let [params-schema
+        [:map
+         [:ips string?]
+         [:services {:optional true} string?]]]
+    (if (m/validate params-schema params)
+      (s-post   "/shodan/scan"
+                {:form-params (select-keys params [:ips :services])})
+      (throw (ex-info "Invalid input"
+                      (me/humanize (m/explain params-schema params)))))))
+
+(defn scan-internet
+  "Crawl the Internet for a specific port and protocol using Shodan
+  Use this method to request Shodan to crawl the Internet for a specific port.
+
+  Requirements
+  This method is restricted to security researchers and companies with a Shodan
+  Enterprise Data license. To apply for access to this method as a researcher,
+  please email jmath@shodan.io with information about your project. Access is
+  restricted to prevent abuse.
+
+  Parameters
+  port: [Integer] The port that Shodan should crawl the Internet for.
+  protocol: [String] The name of the protocol that should be used to interrogate
+  the port. See /shodan/protocols for a list of supported protocols."
+  [{port     :port
+    protocol :protocol
+    :as      params}]
+  (let [params-schema [:map
+                       [:port int?]
+                       [:protocol string?]]]
+    (if (m/validate params-schema params)
+      (s-post "/shodan/scan/internet" {:form-params params})
+      (throw (ex-info "Invalid input"
+                      (me/humanize (m/explain params-schema params)))))))
+
+(defn list-created-scans
+  ;; Get list of all the created scans
+  ;; Returns a listing of all the on-demand scans that are currently active on
+  ;; the account
+  []
+  (s-get "/shodan/scans"))
+
+(defn scan-status
+  "Get the status of a scan request
+  Check the progress of a previously submitted scan request. Possible values for
+  the status are:
+  SUBMITTING
+  QUEUE
+  PROCESSING
+  DONE
+
+  Parameters
+  id: [String] The unique scan ID that was returned by /shodan/scan."
+  [{id  :id
+    :as params}]
+  (let [params-schema [:map
+                       [:id string?]]]
+    (if (m/validate params-schema params)
+      (s-get (str "/shodan/scan/" id))
+      (throw (ex-info "Invalid input"
+                      (me/humanize (m/explain params-schema params)))))))

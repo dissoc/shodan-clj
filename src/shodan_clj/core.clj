@@ -502,3 +502,97 @@
       (s-delete (str "/shodan/alert/" id "/notifier/" notifier-id))
       (throw (ex-info "Invalid input"
                       (me/humanize (m/explain params-schema params)))))))
+
+;;;;;;;;;;;;;;;
+;; Notifiers ;;
+;;;;;;;;;;;;;;;
+
+(defn list-notifiers
+  "List all user-created notifiers
+  Get a list of all the notifiers that the user has created."
+  []
+  (s-get (str "/notifier")))
+
+(defn list-notification-providers
+  "List of available notification providers
+  Get a list of all the notification providers that are available and the
+  parameters to submit when creating them. "
+  []
+  (s-get (str "/notifier/provider")))
+
+(defn create-notification-service
+  "Create a new notification service for the user
+  Use this method to create a new notification service endpoint that Shodan
+  services can send notifications through.
+      Parameters
+  The parameters depend on the type of notification service that is being
+  created. To get a list of parameters for a provider us the /notifier/provider
+  endpoint. The following parameters always need to be provided:
+  provider: [String] Provider name as returned by /notifier/provider
+  description: [String] Description of the notifier
+  **args: [String] Arguments required by the provider"
+
+  [{provider    :provider
+    description :description
+    args        :args
+    :as         params}]
+  (let [params-schema [:map
+                       [:provider string?]
+                       [:description string?]
+                       [:args string?]]]
+    (if (m/validate params-schema params)
+      (s-post (str "/notifier"))
+      (throw (ex-info "Invalid input"
+                      (me/humanize (m/explain params-schema params)))))))
+
+(defn delete-notification-service
+  "Delete a notification service
+  Remove the notification service created for the user.
+
+      Parameters
+  id: [String] Notifier ID"
+  [{id  :id
+    :as params}]
+  (let [params-schema [:map
+                       [:id string?]]]
+    (if (m/validate params-schema params)
+      (s-delete (str "/notifier/" id))
+      (throw (ex-info "Invalid input"
+                      (me/humanize (m/explain params-schema params)))))))
+
+(defn get-notifier-info
+  "Get information about a notifier
+  Use this method to create a new notification service endpoint that Shodan
+  services can send notifications through.
+
+  Parameters
+  id: [String] Notifier ID"
+  [{id  :id
+    :as params}]
+  (let [params-schema [:map
+                       [:id string?]]]
+    (if (m/validate params-schema params)
+      (s-get (str "/notifier/" id))
+      (throw (ex-info "Invalid input"
+                      (me/humanize (m/explain params-schema params)))))))
+
+(defn edit-notifier
+  "Edit a notifier
+  Use this method to update the parameters of a notifier.
+
+  Parameters
+  The parameters depend on the type of notification service that is being
+  created. To get a list of parameters for a provider us the /notifier/provider
+  endpoint.
+
+  id: [String] Notifier ID
+  **args: [String] Arguments required by the provider"
+  [{id  :id
+    args :args
+    :as params}]
+  (let [params-schema [:map
+                       [:id string?]]]
+    (if (m/validate params-schema params)
+      (s-get (str "/notifier/" id))
+      (throw (ex-info "Invalid input"
+                      (me/humanize (m/explain params-schema params)))))))
